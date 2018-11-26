@@ -40,8 +40,11 @@ app.use(
 app.get("/", homeController.index);
 
 // Transaction routes
-app.post("/transaction/create", transactionController.validateCreate(), validateJwtAndInjectUser, transactionController.create);
 app.get("/transaction/all", validateJwtAndInjectUser, transactionController.getAll);
+app.get("/transaction/:id", validateJwtAndInjectUser, transactionController.get);
+app.post("/transaction/create", transactionController.validateTransactionForCreation(), validateJwtAndInjectUser, transactionController.create);
+app.put("/transaction/update", transactionController.validateTransactionForUpdate(), validateJwtAndInjectUser, transactionController.update);
+app.delete("/transaction/:id", validateJwtAndInjectUser, transactionController.remove);
 
 // User routes
 app.post("/user/login", userController.validateLogin(), userController.login);

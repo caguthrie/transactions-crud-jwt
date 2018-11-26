@@ -2,8 +2,11 @@ import { Request, Response } from "express";
 import * as transactionService from "./../services/transactionService";
 import { Transaction } from "../models/Transaction";
 import { body, validationResult, query } from "express-validator/check";
+import Datastore = require("@google-cloud/datastore");
+import { DatastoreKey } from "@google-cloud/datastore/entity";
+import { datastore } from "../services/datastore";
 
-export let validateCreate = () => {
+export let validateTransactionForCreation = () => {
     return [
         body("description", "description doesn't exist").exists(),
         body("price", "Invalid price").exists()
@@ -14,13 +17,52 @@ export let validateCreate = () => {
  * POST /transaction/create
  * Create a new transaction
  */
-export let create = (req: Request, res: Response) => {
+export const create = (req: Request, res: Response) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(422).json({ errors: errors.array() });
     } else {
         const {description, price} = req.body as Transaction;
-        transactionService.create({description, price, userId: 1});
+        const {id}: DatastoreKey = req.user[datastore.KEY as any];
+        transactionService.create({description, price, userId: parseInt(id)});
+        return res.status(200).json({result: "ok"});
+    }
+};
+
+export let validateTransactionForUpdate = () => {
+    return [
+        ...validateTransactionForCreation(),
+        body("userId", "Invalid userIid").exists(),
+        body("id", "Invalid id").exists()
+    ];
+};
+
+/**
+ * PUT /transaction/update
+ * Update a transaction
+ */
+export const update = (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(422).json({ errors: errors.array() });
+    } else {
+        const {description, price, userId, id} = req.body as Transaction;
+        transactionService.update({description, price, userId, id});
+        return res.status(200).json({result: "ok"});
+    }
+};
+
+/**
+ * DELETE /transaction/:id
+ * Delete a transaction
+ */
+export const remove = (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(422).json({ errors: errors.array() });
+    } else {
+        const {id} = req.params;
+        transactionService.remove(parseInt(id));
         return res.status(200).json({result: "ok"});
     }
 };
@@ -36,15 +78,27 @@ export let getAll = (req: Request, res: Response) => {
     });
 };
 
-export let validateGet = () => {
-    return [
-        query("id", "Please provide id").exists().isNumeric()
-    ];
-};
-
+/**
+ * GET /transaction/:id
+ * Get a transaction
+ */
 export let get = (req: Request, res: Response) => {
-    transactionService.getAll().then((result) => {
-        res.send(result);
-    });
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(422).json({ errors: errors.array() });
+    } else {
+        const {id} = req.params;
+        transactionService.get(parseInt(id))
+            .then(result => {
+                if (!result[0]) {
+                    res.status(500).json({result: `No transaction found with id ${id}`});
+                } else {
+                    res.status(200).json({result: result[0]});
+                }
+            })
+            .catch( err => {
+                res.status(500).json({message: `Failed to retrieve transaction with id ${id}`});
+            });
+    }
 };
 

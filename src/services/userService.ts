@@ -31,32 +31,31 @@ export const validateJwtAndInjectUser = (req: Request, res: Response, next: Next
     const token = req.headers.authorization;
 
     if (!token) {
-        res.sendStatus(401);
+        res.status(401).json({message: "Please provide bearer jwt with request"});
     }
 
     if (token.startsWith("Bearer ")) {
+        // Remove Bearer from string
         const slicedToken = token.slice(7, token.length);
         jwt.verify(slicedToken, process.env.JWT_SECRET, (err, decoded: any) => {
             if (err) {
-                res.sendStatus(401);
+                res.status(401).json({message: "Token not valid! Please request a new token."});
             } else {
                 get(decoded.id)
                     .then(user => {
                         if (user.length !== 1) {
-                            res.sendStatus(500);
+                            res.status(500).json({message: `No user found with id ${decoded.id}`});
                         } else {
                             req.user = user[0] as UserModel;
                             next();
                         }
                     })
                     .catch( err => {
-                        res.sendStatus(500);
+                        res.status(500).json({message: `Unable to query user with id ${decoded.id}`});
                     });
             }
         });
-        // Remove Bearer from string
-
     } else {
-        res.sendStatus(401);
+        res.status(401).json({message: `Authorization header is not in 'Bearer {token}' format`});
     }
 };
