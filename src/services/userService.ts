@@ -28,18 +28,18 @@ export function getByEmail(email: string): Promise<UserModel | undefined> {
 }
 
 export const validateJwtAndInjectUser = (req: Request, res: Response, next: NextFunction): void => {
-    const token = req.headers.authorization;
+    const authHeader = req.headers.authorization;
 
-    if (!token) {
+    if (!authHeader) {
         res.status(401).json({message: "Please provide bearer jwt with request"});
     }
 
-    if (token.startsWith("Bearer ")) {
+    if (authHeader.startsWith("Bearer ")) {
         // Remove Bearer from string
-        const slicedToken = token.slice(7, token.length);
-        jwt.verify(slicedToken, process.env.JWT_SECRET, (err, decoded: any) => {
+        const token = authHeader.slice(7, authHeader.length);
+        jwt.verify(token, process.env.JWT_SECRET, (err, decoded: any) => {
             if (err) {
-                res.status(401).json({message: "Token not valid! Please request a new token."});
+                res.status(401).json({message: "Token not valid! Please request a new authHeader."});
             } else {
                 get(decoded.id)
                     .then(user => {

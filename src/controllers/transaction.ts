@@ -73,7 +73,8 @@ export const remove = (req: Request, res: Response) => {
  * Get all transactions
  */
 export let getAll = (req: Request, res: Response) => {
-    transactionService.getAll().then((result) => {
+    const {id}: DatastoreKey = req.user[datastore.KEY as any];
+    transactionService.getAll(parseInt(id)).then((result) => {
         res.send(result);
     });
 };

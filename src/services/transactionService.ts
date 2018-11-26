@@ -1,6 +1,7 @@
 import { Transaction } from "../models/Transaction";
 import { QueryResult } from "@google-cloud/datastore/query";
 import { datastore } from "./datastore";
+import { UserModel } from "../models/User";
 
 const TransactionScope = "Transaction";
 
@@ -59,9 +60,9 @@ export function remove(id: number) {
         });
 }
 
-export function getAll(): Promise<QueryResult> {
+export function getAll(userId: number): Promise<QueryResult> {
     const query = datastore.createQuery(TransactionScope);
-
+    query.filter("userId", "=", userId);
     return datastore.runQuery(query);
 }
 
