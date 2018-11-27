@@ -72,34 +72,32 @@ export const remove = (req: Request, res: Response) => {
  * GET /transaction/all
  * Get all transactions
  */
-export let getAll = (req: Request, res: Response) => {
+export let getAll = async (req: Request, res: Response) => {
     const {id}: DatastoreKey = req.user[datastore.KEY as any];
-    transactionService.getAll(parseInt(id)).then((result) => {
-        res.send(result);
-    });
+    const result = await transactionService.getAll(parseInt(id));
+    res.send(result);
 };
 
 /**
  * GET /transaction/:id
  * Get a transaction
  */
-export let get = (req: Request, res: Response) => {
+export let get = async (req: Request, res: Response) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(422).json({ errors: errors.array() });
+        res.status(422).json({ errors: errors.array() });
     } else {
         const {id} = req.params;
-        transactionService.get(parseInt(id))
-            .then(result => {
-                if (!result[0]) {
-                    res.status(500).json({result: `No transaction found with id ${id}`});
-                } else {
-                    res.status(200).json({result: result[0]});
-                }
-            })
-            .catch( err => {
-                res.status(500).json({message: `Failed to retrieve transaction with id ${id}`});
-            });
+        try {
+            const result = await transactionService.get(parseInt(id));
+            if (!result[0]) {
+                res.status(500).json({result: `No transaction found with id ${id}`});
+            } else {
+                res.status(200).json({result: result[0]});
+            }
+        } catch (err) {
+            res.status(500).json({message: `Failed to retrieve transaction with id ${id}`});
+        }
     }
 };
 

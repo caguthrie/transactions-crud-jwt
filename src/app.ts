@@ -6,7 +6,6 @@ import dotenv from "dotenv";
 import path from "path";
 import expressValidator from "express-validator";
 // Controllers (route handlers)
-import * as homeController from "./controllers/home";
 import * as transactionController from "./controllers/transaction";
 import * as userController from "./controllers/user";
 import { validateJwtAndInjectUser } from "./services/userService";
@@ -33,11 +32,6 @@ app.use(lusca.xssProtection(true));
 app.use(
   express.static(path.join(__dirname, "public"), { maxAge: 31557600000 })
 );
-
-/**
- * Primary app routes.
- */
-app.get("/", homeController.index);
 
 // Transaction routes
 app.get("/transaction/all", validateJwtAndInjectUser, transactionController.getAll);

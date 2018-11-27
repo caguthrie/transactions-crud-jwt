@@ -11,20 +11,19 @@ export function get(id: string): Promise<[object | undefined]> {
     return datastore.get(userKey);
 }
 
-export function getByEmail(email: string): Promise<UserModel | undefined> {
+export async function getByEmail(email: string): Promise<UserModel | undefined> {
     const query = datastore.createQuery(UserScope).filter("email", "=", email);
-    return datastore.runQuery(query)
-        .then(result => {
-            if (result[0].length !== 1) {
-                return undefined;
-            } else {
-                return result[0][0] as UserModel;
-            }
-        })
-        .catch(err => {
-            console.log(err);
-            return new Promise(resolve => resolve);
-        });
+    try {
+        const result = await datastore.runQuery(query);
+        if (result[0].length !== 1) {
+            return undefined;
+        } else {
+            return result[0][0] as UserModel;
+        }
+    } catch (err) {
+        console.log(err);
+        return err;
+    }
 }
 
 export const validateJwtAndInjectUser = (req: Request, res: Response, next: NextFunction): void => {
@@ -37,22 +36,21 @@ export const validateJwtAndInjectUser = (req: Request, res: Response, next: Next
     if (authHeader.startsWith("Bearer ")) {
         // Remove Bearer from string
         const token = authHeader.slice(7, authHeader.length);
-        jwt.verify(token, process.env.JWT_SECRET, (err, decoded: any) => {
+        jwt.verify(token, process.env.JWT_SECRET, async (err, decoded: any) => {
             if (err) {
                 res.status(401).json({message: "Token not valid! Please request a new authHeader."});
             } else {
-                get(decoded.id)
-                    .then(user => {
-                        if (user.length !== 1) {
-                            res.status(500).json({message: `No user found with id ${decoded.id}`});
-                        } else {
-                            req.user = user[0] as UserModel;
-                            next();
-                        }
-                    })
-                    .catch( err => {
-                        res.status(500).json({message: `Unable to query user with id ${decoded.id}`});
-                    });
+                try {
+                    const user = await get(decoded.id);
+                    if (user.length !== 1) {
+                        res.status(500).json({message: `No user found with id ${decoded.id}`});
+                    } else {
+                        req.user = user[0] as UserModel;
+                        next();
+                    }
+                } catch (err) {
+                    res.status(500).json({message: `Unable to query user with id ${decoded.id}`});
+                }
             }
         });
     } else {
