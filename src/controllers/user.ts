@@ -5,6 +5,7 @@ import * as userService from "../services/userService";
 import * as jwt from "jsonwebtoken";
 import { datastore } from "../services/datastore";
 import { DatastoreKey } from "@google-cloud/datastore/entity";
+import { UserModel } from "../models/User";
 
 export let validateLogin = () => {
     return [
@@ -13,8 +14,8 @@ export let validateLogin = () => {
     ];
 };
 
-export let login = async (req: Request, res: Response) => {
-    const {email, password} = req.body;
+export const login = async (req: Request, res: Response) => {
+    const {email, password} = req.body as UserModel;
     try {
         const user = await userService.getByEmail(email);
         const isPasswordCorrect = bcrypt.compareSync(password, user.passwordDigest);
@@ -25,9 +26,42 @@ export let login = async (req: Request, res: Response) => {
             });
             res.send(token);
         } else {
-            res.sendStatus(401);
+            res.status(401).json({message: "Incorrect password!"});
         }
     } catch (err) {
-        res.sendStatus(500);
+        res.status(500).json({message: "Unable to query database for user"});
+    }
+};
+
+export let validateCreate = () => {
+    return [
+        ...validateLogin(),
+        body("name", "Please provide email").exists(),
+        body("balance", "Please provide password").exists(),
+        body("userCreationPassword", "Please provide userCreationPassword").exists()
+    ];
+};
+
+export const create = async (req: Request, res: Response) => {
+    const {name, email, password, balance, userCreationPassword} = req.body;
+    try {
+        const user = await userService.getByEmail(email);
+        if (user) {
+            res.status(409).json({message: `A user with the email address ${email} already exists!`});
+        } else {
+            if (bcrypt.compareSync(userCreationPassword, process.env.LOGIN_SECRET)) {
+                await userService.create({
+                    name,
+                    email,
+                    passwordDigest: bcrypt.hashSync(password),
+                    balance
+                });
+                res.sendStatus(200);
+            } else {
+                res.status(403).json({message: "Incorrect user creation password"});
+            }
+        }
+    } catch (err) {
+        res.status(500).json({message: "Unable to query database for user"});
     }
 };

@@ -22,7 +22,22 @@ export async function getByEmail(email: string): Promise<UserModel | undefined> 
         }
     } catch (err) {
         console.log(err);
-        return err;
+        return undefined;
+    }
+}
+
+export async function create(user: UserModel) {
+    const userKey = datastore.key([UserScope]);
+    const userRow = {
+        key: userKey,
+        data: user
+    };
+    try {
+        await datastore.save(userRow);
+        console.log(`Saved new user ${user}`);
+    } catch (e) {
+        console.error(e);
+        console.error(`Error saving new user ${user}`);
     }
 }
 
