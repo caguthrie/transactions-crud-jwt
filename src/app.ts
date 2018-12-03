@@ -1,8 +1,8 @@
 import express, { Request, Response } from "express";
+import cors from "cors";
 import compression from "compression"; // compresses requests
 import bodyParser from "body-parser";
 import lusca from "lusca";
-import dotenv from "dotenv";
 import path from "path";
 import expressValidator from "express-validator";
 // Controllers (route handlers)
@@ -12,13 +12,9 @@ import { validateJwtAndInjectUser } from "./services/userService";
 import { validationResult } from "express-validator/check";
 import { NextFunction } from "express-serve-static-core";
 
-
-// Load environment variables from .env file, where API keys and passwords are configured
-dotenv.config({ path: ".env.example" });
-
-
 // Create Express server
 const app = express();
+app.use(cors());
 
 // Express configuration
 app.set("port", process.env.PORT || 3000);

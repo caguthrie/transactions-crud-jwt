@@ -38,6 +38,7 @@ export let validateTransactionForUpdate = () => {
 export const update = (req: Request, res: Response) => {
     const {description, price, userId, id} = req.body as Transaction;
     transactionService.update({description, price, userId, id});
+    // TODO error handling
     return res.status(200).json({result: "ok"});
 };
 
@@ -59,7 +60,13 @@ export const remove = (req: Request, res: Response) => {
 export let getAll = async (req: Request, res: Response) => {
     const {id}: DatastoreKey = req.user[datastore.KEY as any];
     const result = await transactionService.getAll(parseInt(id));
-    res.send(result);
+    const resp = result[0].map((entity: any) => {
+        return {
+            ...entity,
+            id: entity[datastore.KEY].id
+        };
+    });
+    res.send(resp);
 };
 
 /**
@@ -69,11 +76,14 @@ export let getAll = async (req: Request, res: Response) => {
 export let get = async (req: Request, res: Response) => {
     const {id} = req.params;
     try {
-        const result = await transactionService.get(parseInt(id));
+        const result: any = await transactionService.get(parseInt(id));
         if (!result[0]) {
             res.status(500).json({result: `No transaction found with id ${id}`});
         } else {
-            res.status(200).json({result: result[0]});
+            res.status(200).json({
+                ...result[0],
+                id: result[0][datastore.KEY].id
+            });
         }
     } catch (err) {
         res.status(500).json({message: `Failed to retrieve transaction with id ${id}`});

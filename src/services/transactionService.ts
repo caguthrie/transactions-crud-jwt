@@ -22,7 +22,8 @@ export async function create(transaction: Transaction) {
 
 export async function update(transaction: Transaction) {
     const {id, userId, price, description} = transaction;
-    const transactionKey = datastore.key([TransactionScope, id]);
+    // TODO fix this type stuff
+    const transactionKey = datastore.key([TransactionScope, parseInt(id.toString())]);
     const transactionRow = {
         key: transactionKey,
         data: {
