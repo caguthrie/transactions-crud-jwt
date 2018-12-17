@@ -1,10 +1,10 @@
-import bcrypt from "bcrypt-nodejs";
-import crypto from "crypto";
-
 export interface UserModel {
-  name: string;
-  email: string;
-  passwordDigest: string;
-  balance: number;
-  [s: string]: any;
+    name: string;
+    passwordDigest: string;
+    email: string;
+    emailPassword: string;
+    recordsEmail: string;
+    balance: number;
+
+    [s: string]: any;
 }

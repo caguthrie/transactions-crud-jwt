@@ -63,6 +63,7 @@
     "express-session": "^1.15.6",
     "express-validator": "^4.3.0",
     "fbgraph": "^1.4.1",
+    "gmail-send": "^1.2.14",
     "jest": "^22.0.4",
     "jsonwebtoken": "^8.4.0",
     "lodash": "^4.17.5",

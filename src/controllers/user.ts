@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { body } from "express-validator/check";
 import bcrypt from "bcrypt-nodejs";
 import * as userService from "../services/userService";
+import * as cryptoService from "../services/cryptoService";
 import * as jwt from "jsonwebtoken";
 import { datastore } from "../services/datastore";
 import { DatastoreKey } from "@google-cloud/datastore/entity";
@@ -43,7 +44,7 @@ export let validateCreate = () => {
 };
 
 export const create = async (req: Request, res: Response) => {
-    const {name, email, password, balance, userCreationPassword} = req.body;
+    const {name, email, password, balance, userCreationPassword, recordsEmail, emailPassword} = req.body;
     try {
         const user = await userService.getByEmail(email);
         if (user) {
@@ -53,8 +54,11 @@ export const create = async (req: Request, res: Response) => {
                 await userService.create({
                     name,
                     email,
-                    passwordDigest: bcrypt.hashSync(password),
-                    balance
+                    passwordDigest: bcrypt.hashSync(password), // One way encryption for password
+                    balance,
+                    // TODO need to add these properties to the front-end
+                    recordsEmail,
+                    emailPassword: cryptoService.encrypt(emailPassword) // Two way AES encryption for data at rest
                 });
                 res.sendStatus(200);
             } else {

@@ -8,6 +8,7 @@ import expressValidator from "express-validator";
 // Controllers (route handlers)
 import * as transactionController from "./controllers/transaction";
 import * as userController from "./controllers/user";
+import * as processController from "./controllers/process";
 import { validateJwtAndInjectUser } from "./services/userService";
 import { validationResult } from "express-validator/check";
 import { NextFunction } from "express-serve-static-core";
@@ -41,6 +42,9 @@ app.delete("/transaction/:id", validateJwtAndInjectUser, transactionController.r
 // User routes
 app.post("/user/login", userController.validateLogin(), checkValidationResult, userController.login);
 app.post("/user/create", userController.validateCreate(), checkValidationResult, userController.create);
+
+// Process routes
+app.post("/process", processController.process);
 
 function checkValidationResult(req: Request, res: Response, next: NextFunction) {
     const result = validationResult(req);
