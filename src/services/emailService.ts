@@ -2,8 +2,10 @@ import { UserModel } from "../models/User";
 import { decrypt } from "./cryptoService";
 import Imap from "imap";
 import { Transaction } from "../models/Transaction";
+import sendGmail from "gmail-send";
+import { formatAndSortTransactions, formatMoney } from "../util/format";
 
-export function fetchUnreadMessages(user: UserModel): Promise<string[]> {
+export function fetchUnreadMessages(user: UserModel): Promise<Transaction[]> {
     const imap = new Imap({
         user: user.email,
         password: decrypt(user.emailPassword),
@@ -13,29 +15,43 @@ export function fetchUnreadMessages(user: UserModel): Promise<string[]> {
     });
 
     return new Promise((resolve, reject) => {
-        const messages: string[] = [];
+        const transactions: Transaction[] = [];
         imap.once("ready", () => {
-            imap.openBox("INBOX", true, () => {
+            imap.openBox("INBOX", false, () => {
                 imap.search(["UNSEEN"], (err, results) => {
-                    const f = imap.fetch(results, { bodies: ""});
-                    f.on("message", (msg) => {
-                        msg.on("body", (stream) => {
-                            const chunks: string[] = [];
-                            stream.on("data", (chunk: string) => {
-                                chunks.push(chunk);
-                            });
+                    // If there are no messages, just return an email array
+                    if (results.length === 0) {
+                        resolve([]);
+                    } else {
+                        const f = imap.fetch(results, { bodies: ""});
+                        f.on("message", (msg) => {
+                            msg.on("body", (stream) => {
+                                const chunks: string[] = [];
+                                stream.on("data", (chunk: string) => {
+                                    chunks.push(chunk);
+                                });
 
-                            stream.on("end",  () => {
-                                messages.push(chunks.join("\n"));
+                                stream.on("end",  () => {
+                                    const message = chunks.join("\n");
+                                    const transaction = parseMessage(message);
+                                    if (transaction) {
+                                        transactions.push(transaction);
+                                    }
+                                });
                             });
                         });
-                    });
-                    f.once("error", (err) => {
-                        reject("Fetch error: " + err);
-                    });
-                    f.once("end", () => {
-                        imap.end();
-                    });
+                        f.once("error", (err) => {
+                            reject("Fetch error: " + err);
+                        });
+                        f.once("end", () => {
+                            imap.setFlags(results, ["\\Seen"], (err) => {
+                                if (err) {
+                                    reject("Unable to mark messages as read");
+                                }
+                            });
+                            imap.end();
+                        });
+                    }
                 });
             });
         });
@@ -45,7 +61,7 @@ export function fetchUnreadMessages(user: UserModel): Promise<string[]> {
         });
 
         imap.once("end", () => {
-            resolve(messages);
+            resolve(transactions);
         });
 
         imap.connect();
@@ -62,7 +78,7 @@ function parseTransactionFromCloakifyEmail(message: string): Transaction {
     const cost = message.match(/\nCost: \$(.*)\r/)[1];
     return {
         price: parseFloat(cost),
-        description: `"${orderId} ${quantity}x ${event} @ ${venue} on ${date} ${time}`,
+        description: `${orderId} ${quantity}x ${event} @ ${venue} on ${date} ${time}`,
         userId: undefined
     };
 }
@@ -77,19 +93,45 @@ function parseTransactionFromPaypalEmail(message: string): Transaction  {
     };
 }
 
-export function parseMessages(messages: string[]): Transaction[] {
-    return messages.map(message => {
-        try {
-            const [_, fromAndBody] = message.split("\nFrom: ");
-            const [__, from] = fromAndBody.match(/<(.*)>/);
-            switch (from) {
-                case "notify@cloakify.com":
-                    return parseTransactionFromCloakifyEmail(fromAndBody);
-                case "service@paypal.com":
-                    return parseTransactionFromPaypalEmail(fromAndBody);
+export function parseMessage(message: string): Transaction {
+    const [_, fromAndBody] = message.split("\nFrom: ");
+    const [__, from] = fromAndBody.match(/<(.*)>/);
+    switch (from) {
+        case "notify@cloakify.com":
+            return parseTransactionFromCloakifyEmail(fromAndBody);
+        case "service@paypal.com":
+            return parseTransactionFromPaypalEmail(fromAndBody);
+        default:
+            return undefined;
+    }
+}
+
+export function sendBill(user: UserModel, transactions: Transaction[]): Promise<string> {
+    const newBalance = user.balance + transactions.reduce((memo, t) => t.price + memo, 0);
+    const emailBody = [
+        `Previous balance: ${formatMoney(user.balance)}`,
+        "",
+        ...formatAndSortTransactions(transactions).map(t => `${t}`),
+        "",
+        newBalance > 0 ? `Total owed to ${user.name}: ${formatMoney(newBalance)}` : `Total ${user.name} owes: ${formatMoney(newBalance)}`
+    ];
+    return sendEmail(user, emailBody.join("<br>"));
+}
+
+export function sendEmail(user: UserModel, htmlBody: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+        sendGmail({
+            user: user.email,
+            pass: decrypt(user.emailPassword),
+            to: user.recordsEmail,
+            subject: `Tix bill for ${user.name}`,
+            html: htmlBody
+        })({}, (err: string, res: string) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(res);
             }
-        } catch {
-            // TODO error handling
-        }
+        });
     });
 }

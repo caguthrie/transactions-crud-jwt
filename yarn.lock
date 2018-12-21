@@ -2145,6 +2145,13 @@ globby@^8.0.0, globby@^8.0.1:
     pify "^3.0.0"
     slash "^1.0.0"
 
+gmail-send@^1.2.14:
+  version "1.2.14"
+  resolved "https://registry.yarnpkg.com/gmail-send/-/gmail-send-1.2.14.tgz#2fd20a0270197be46f8f2633ea34f9410dec01b1"
+  dependencies:
+    lodash "^4.17.5"
+    nodemailer "^4.6.4"
+
 google-auth-library@^2.0.0:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/google-auth-library/-/google-auth-library-2.0.1.tgz#32c6215e771538ef826cb65391a984a2c62ba57c"
@@ -3624,7 +3631,7 @@ node-pre-gyp@^0.12.0:
     semver "^5.3.0"
     tar "^4"
 
-nodemailer@^4.4.1:
+nodemailer@^4.4.1, nodemailer@^4.6.4:
   version "4.7.0"
   resolved "https://registry.yarnpkg.com/nodemailer/-/nodemailer-4.7.0.tgz#4420e06abfffd77d0618f184ea49047db84f4ad8"
 

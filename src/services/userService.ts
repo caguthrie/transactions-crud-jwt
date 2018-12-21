@@ -3,12 +3,29 @@ import { UserModel } from "../models/User";
 import { Request, Response } from "express";
 import * as jwt from "jsonwebtoken";
 import { NextFunction } from "express-serve-static-core";
+import { Transaction } from "../models/Transaction";
 
 const UserScope = "User";
 
 export function get(id: string): Promise<[object | undefined]> {
     const userKey = datastore.key([UserScope, parseInt(id)]);
     return datastore.get(userKey);
+}
+
+export async function getAll(): Promise<UserModel[]> {
+    const query = datastore.createQuery(UserScope);
+    try {
+        const result = await datastore.runQuery(query);
+        if (result[0].length === 0) {
+            console.log("No users found");
+            return [];
+        } else {
+            return result[0] as UserModel[];
+        }
+    } catch (err) {
+        console.log(err);
+        return [];
+    }
 }
 
 export async function getByEmail(email: string): Promise<UserModel | undefined> {
@@ -39,6 +56,26 @@ export async function create(user: UserModel) {
         console.error(e);
         console.error(`Error saving new user ${user}`);
     }
+}
+
+export async function update(user: UserModel) {
+    const {name, email, balance, emailPassword, recordsEmail, passwordDigest} = user;
+    const userKey = datastore.key([UserScope, parseInt(user[datastore.KEY as any].id)]);
+    const userRow = {
+        key: userKey,
+        data: {
+            name,
+            email,
+            balance,
+            emailPassword,
+            recordsEmail,
+            passwordDigest
+        }
+    };
+
+    const result = await datastore.update(userRow);
+    console.log(`Updated ${user.name}`);
+    return result;
 }
 
 export const validateJwtAndInjectUser = (req: Request, res: Response, next: NextFunction): void => {

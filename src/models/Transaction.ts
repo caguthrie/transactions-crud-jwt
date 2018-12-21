@@ -3,4 +3,6 @@ export interface Transaction {
     description: string;
     price: number;
     userId: number;
+
+    [s: string]: any;
 }
