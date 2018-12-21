@@ -7,6 +7,7 @@ import * as jwt from "jsonwebtoken";
 import { datastore } from "../services/datastore";
 import { DatastoreKey } from "@google-cloud/datastore/entity";
 import { UserModel } from "../models/User";
+import { cat } from "shelljs";
 
 export let validateLogin = () => {
     return [
@@ -67,5 +68,15 @@ export const create = async (req: Request, res: Response) => {
         }
     } catch (err) {
         res.status(500).json({message: "Unable to query database for user"});
+    }
+};
+
+export const getBalance = async (req: Request, res: Response) => {
+    try {
+        const {id}: DatastoreKey = req.user[datastore.KEY as any];
+        const user = await userService.get(id);
+        res.status(200).json({balance: user.balance});
+    } catch (error) {
+        res.status(500).json({error});
     }
 };

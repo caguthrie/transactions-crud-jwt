@@ -1,6 +1,7 @@
 import { Transaction } from "../models/Transaction";
 import { QueryResult } from "@google-cloud/datastore/query";
 import { datastore } from "./datastore";
+import { formatMoney } from "../util/format";
 
 const TransactionScope = "Transaction";
 
@@ -13,7 +14,7 @@ export async function create(transaction: Transaction) {
 
     try {
         await datastore.save(transactionRow);
-        console.log(`Saved ${transaction}`);
+        console.log(`Saved: ${transaction.description}: ${formatMoney(transaction.price)}`);
     } catch (err) {
         // TODO better error handling
         console.error("ERROR:", err);

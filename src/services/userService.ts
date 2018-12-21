@@ -3,13 +3,13 @@ import { UserModel } from "../models/User";
 import { Request, Response } from "express";
 import * as jwt from "jsonwebtoken";
 import { NextFunction } from "express-serve-static-core";
-import { Transaction } from "../models/Transaction";
 
 const UserScope = "User";
 
-export function get(id: string): Promise<[object | undefined]> {
+export async function get(id: string): Promise<UserModel> {
     const userKey = datastore.key([UserScope, parseInt(id)]);
-    return datastore.get(userKey);
+    const result = await datastore.get(userKey);
+    return result[0] as UserModel;
 }
 
 export async function getAll(): Promise<UserModel[]> {
@@ -94,10 +94,10 @@ export const validateJwtAndInjectUser = (req: Request, res: Response, next: Next
             } else {
                 try {
                     const user = await get(decoded.id);
-                    if (user.length !== 1) {
+                    if (!user) {
                         res.status(500).json({message: `No user found with id ${decoded.id}`});
                     } else {
-                        req.user = user[0] as UserModel;
+                        req.user = user;
                         next();
                     }
                 } catch (err) {
