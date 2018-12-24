@@ -5,6 +5,7 @@ export interface UserModel {
     emailPassword: string;
     recordsEmail: string;
     balance: number;
+    forgotPasswordToken: string;
 
     [s: string]: any;
 }

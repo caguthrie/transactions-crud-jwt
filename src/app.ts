@@ -43,6 +43,8 @@ app.delete("/transaction/:id", validateJwtAndInjectUser, transactionController.r
 app.post("/user/login", userController.validateLogin(), checkValidationResult, userController.login);
 app.post("/user/create", userController.validateCreate(), checkValidationResult, userController.create);
 app.get("/user/balance", validateJwtAndInjectUser, userController.getBalance);
+app.post("/user/forgot-password", userController.forgotPassword);
+app.post("/user/reset-password", userController.resetPassword);
 
 // Process routes
 app.post("/process", processController.process);

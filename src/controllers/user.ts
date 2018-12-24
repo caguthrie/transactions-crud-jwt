@@ -8,6 +8,7 @@ import { datastore } from "../services/datastore";
 import { DatastoreKey } from "@google-cloud/datastore/entity";
 import { UserModel } from "../models/User";
 import { cat } from "shelljs";
+import { getByEmail } from "../services/userService";
 
 export let validateLogin = () => {
     return [
@@ -59,6 +60,7 @@ export const create = async (req: Request, res: Response) => {
                     balance,
                     // TODO need to add these properties to the front-end
                     recordsEmail,
+                    forgotPasswordToken: undefined,
                     emailPassword: cryptoService.encrypt(emailPassword) // Two way AES encryption for data at rest
                 });
                 res.sendStatus(200);
@@ -78,5 +80,45 @@ export const getBalance = async (req: Request, res: Response) => {
         res.status(200).json({balance: user.balance});
     } catch (error) {
         res.status(500).json({error});
+    }
+};
+
+export const forgotPassword = async (req: Request, res: Response) => {
+    const {email} = req.body;
+    const user = await userService.getByEmail(email);
+    if (user) {
+        try {
+            const result = await userService.sendForgotPasswordEmailForUser(user);
+            if (result) {
+                res.status(200).json({message: "ok"});
+            } else {
+                res.status(500).json({error: `Found user, but problem sending email.`});
+            }
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({error: `Found user, but problem sending email.`});
+        }
+    } else {
+        res.status(401).json({error: `Can't find user with email: ${email}`});
+    }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+    const {token, email, password} = req.body;
+    const user = await getByEmail(email);
+    if (user.forgotPasswordToken === token) {
+        try {
+            await userService.update({
+                ...user,
+                forgotPasswordToken: undefined,
+                passwordDigest: cryptoService.encrypt(password)
+            });
+            res.status(200).json({message: "ok"});
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({error});
+        }
+    } else {
+        res.status(403).json({message: "Forgot password token is not a match! Please reset your password again."});
     }
 };

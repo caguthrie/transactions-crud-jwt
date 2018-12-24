@@ -115,16 +115,16 @@ export function sendBill(user: UserModel, transactions: Transaction[]): Promise<
         "",
         newBalance > 0 ? `Total owed to ${user.name}: ${formatMoney(newBalance)}` : `Total ${user.name} owes: ${formatMoney(newBalance)}`
     ];
-    return sendEmail(user, emailBody.join("<br>"));
+    return sendEmail(user, emailBody.join("<br>"), user.recordsEmail, `Tix bill for ${user.name}`);
 }
 
-export function sendEmail(user: UserModel, htmlBody: string): Promise<string> {
+export function sendEmail(user: UserModel, htmlBody: string, to: string, subject: string): Promise<string> {
     return new Promise((resolve, reject) => {
         sendGmail({
             user: user.email,
             pass: decrypt(user.emailPassword),
-            to: user.recordsEmail,
-            subject: `Tix bill for ${user.name}`,
+            to,
+            subject,
             html: htmlBody
         })({}, (err: string, res: string) => {
             if (err) {

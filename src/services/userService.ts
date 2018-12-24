@@ -3,6 +3,8 @@ import { UserModel } from "../models/User";
 import { Request, Response } from "express";
 import * as jwt from "jsonwebtoken";
 import { NextFunction } from "express-serve-static-core";
+import { sendEmail } from "./emailService";
+import { encrypt } from "./cryptoService";
 
 const UserScope = "User";
 
@@ -59,7 +61,7 @@ export async function create(user: UserModel) {
 }
 
 export async function update(user: UserModel) {
-    const {name, email, balance, emailPassword, recordsEmail, passwordDigest} = user;
+    const {name, email, balance, emailPassword, recordsEmail, passwordDigest, forgotPasswordToken} = user;
     const userKey = datastore.key([UserScope, parseInt(user[datastore.KEY as any].id)]);
     const userRow = {
         key: userKey,
@@ -69,12 +71,13 @@ export async function update(user: UserModel) {
             balance,
             emailPassword,
             recordsEmail,
-            passwordDigest
+            passwordDigest,
+            forgotPasswordToken
         }
     };
 
     const result = await datastore.update(userRow);
-    console.log(`Updated ${user.name}`);
+    console.log(`Updated ${user.name}'s user profile`);
     return result;
 }
 
@@ -109,3 +112,17 @@ export const validateJwtAndInjectUser = (req: Request, res: Response, next: Next
         res.status(401).json({message: `Authorization header is not in 'Bearer {token}' format`});
     }
 };
+
+export async function sendForgotPasswordEmailForUser(user: UserModel): Promise<boolean> {
+    const forgotPasswordToken = encrypt(Math.random().toString());
+    try {
+        await update({...user, forgotPasswordToken});
+        // TODO I wonder if it ok to put an email in a URL param ...
+        const message: string = `Please follow this <a href="https://storage.googleapis.com/ta2-transactions-ui/build/index.html?email=${user.email}&token=${forgotPasswordToken}#change-password">link to</a> finish changing your password`;
+        await sendEmail(user, message, `${user.email}, ${user.recordsEmail}`, "Change your password for transactions accountant");
+        return true;
+    } catch (e) {
+        console.error(e);
+        return false;
+    }
+}

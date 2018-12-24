@@ -2,7 +2,7 @@ import crypto from "crypto";
 
 const password = process.env.CRYPTO_SECRET;
 
-export function encrypt(text: string) {
+export function encrypt(text: string): string {
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv("aes-256-cbc", Buffer.from(password), iv);
     let encrypted = cipher.update(Buffer.from(text));
@@ -11,7 +11,7 @@ export function encrypt(text: string) {
     return iv.toString("hex") + ":" + encrypted.toString("hex");
 }
 
-export function decrypt(text: string) { // iv:hash
+export function decrypt(text: string): string { // iv:hash
     const textParts = text.split(":");
     const iv = Buffer.from(textParts.shift(), "hex");
     const encryptedText = Buffer.from(textParts.join(":"), "hex");
