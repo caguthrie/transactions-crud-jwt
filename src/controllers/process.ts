@@ -6,6 +6,11 @@ import { datastore } from "../services/datastore";
 import { Transaction } from "../models/Transaction";
 
 export const process = async (req: Request, res: Response) => {
+    if (!req.header("X-Appengine-Cron")) {
+        console.error("This request did not originate from Google Cron and is disallowed");
+        res.status(412).json({message: "This request did not originate from Google Cron and is disallowed"});
+        return;
+    }
     try {
         const users = await getAll();
         // TODO instead of dealing with promises inside an async function, might be cleaner to do a regular for loop ...

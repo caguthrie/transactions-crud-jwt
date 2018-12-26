@@ -1,4 +1,4 @@
 cron:
 - description: "Email batcher"
   url: /process
-  schedule: every 48 hours
+  schedule: every 24 hours
