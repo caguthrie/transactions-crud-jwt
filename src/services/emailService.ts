@@ -11,7 +11,8 @@ export function fetchUnreadMessages(user: UserModel): Promise<Transaction[]> {
         password: decrypt(user.emailPassword),
         host: "imap.gmail.com",
         port: 993,
-        tls: true
+        tls: true,
+        authTimeout: 20000
     });
 
     return new Promise((resolve, reject) => {
