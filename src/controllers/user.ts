@@ -7,7 +7,6 @@ import * as jwt from "jsonwebtoken";
 import { datastore } from "../services/datastore";
 import { DatastoreKey } from "@google-cloud/datastore/entity";
 import { UserModel } from "../models/User";
-import { cat } from "shelljs";
 import { getByEmail } from "../services/userService";
 
 export let validateLogin = () => {
@@ -25,7 +24,7 @@ export const login = async (req: Request, res: Response) => {
         if (isPasswordCorrect) {
             const {id}: DatastoreKey = user[datastore.KEY as any];
             const token = jwt.sign({id}, process.env.JWT_SECRET, {
-                expiresIn: "100d" // expires in 100 days
+                expiresIn: "300d" // expires in 100 days
             });
             res.status(200).json({token});
         } else {
@@ -103,15 +102,15 @@ export const forgotPassword = async (req: Request, res: Response) => {
     }
 };
 
-export const resetPassword = async (req: Request, res: Response) => {
-    const {token, email, password} = req.body;
+export const changePassword = async (req: Request, res: Response) => {
+    const {changePasswordToken, email, password} = req.body;
     const user = await getByEmail(email);
-    if (user.forgotPasswordToken === token) {
+    if (user.forgotPasswordToken === changePasswordToken) {
         try {
             await userService.update({
                 ...user,
                 forgotPasswordToken: undefined,
-                passwordDigest: cryptoService.encrypt(password)
+                passwordDigest: bcrypt.hashSync(password)
             });
             res.status(200).json({message: "ok"});
         } catch (error) {

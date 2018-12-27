@@ -44,7 +44,7 @@ app.post("/user/login", userController.validateLogin(), checkValidationResult, u
 app.post("/user/create", userController.validateCreate(), checkValidationResult, userController.create);
 app.get("/user/balance", validateJwtAndInjectUser, userController.getBalance);
 app.post("/user/forgot-password", userController.forgotPassword);
-app.post("/user/reset-password", userController.resetPassword);
+app.post("/user/change-password", userController.changePassword);
 
 // Process routes
 app.post("/process", processController.process);

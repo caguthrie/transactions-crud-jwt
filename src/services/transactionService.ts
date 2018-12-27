@@ -36,7 +36,7 @@ export async function update(transaction: Transaction) {
 
     try {
         await datastore.update(transactionRow);
-        console.log(`Updated ${transaction}`);
+        console.log(`Updated ${transaction.description} to price ${price} for userId ${userId}`);
     } catch (err) {
         // TODO better error handling
         console.error("ERROR:", err);

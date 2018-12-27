@@ -119,7 +119,7 @@ export function sendBill(user: UserModel, transactions: Transaction[]): Promise<
     return sendEmail(user, emailBody.join("<br>"), user.recordsEmail, `Tix bill for ${user.name}`);
 }
 
-export function sendEmail(user: UserModel, htmlBody: string, to: string, subject: string): Promise<string> {
+export function sendEmail(user: UserModel, htmlBody: string, to: string | string[], subject: string): Promise<string> {
     return new Promise((resolve, reject) => {
         sendGmail({
             user: user.email,

@@ -5,6 +5,7 @@ import * as jwt from "jsonwebtoken";
 import { NextFunction } from "express-serve-static-core";
 import { sendEmail } from "./emailService";
 import { encrypt } from "./cryptoService";
+import uuid from "uuid/v4";
 
 const UserScope = "User";
 
@@ -68,7 +69,7 @@ export async function update(user: UserModel) {
         data: {
             name,
             email,
-            balance,
+            balance: Math.round(balance * 100) / 100,
             emailPassword,
             recordsEmail,
             passwordDigest,
@@ -114,12 +115,11 @@ export const validateJwtAndInjectUser = (req: Request, res: Response, next: Next
 };
 
 export async function sendForgotPasswordEmailForUser(user: UserModel): Promise<boolean> {
-    const forgotPasswordToken = encrypt(Math.random().toString());
+    const forgotPasswordToken = uuid();
     try {
         await update({...user, forgotPasswordToken});
-        // TODO I wonder if it ok to put an email in a URL param ...
-        const message: string = `Please follow this <a href="https://storage.googleapis.com/ta2-transactions-ui/build/index.html?email=${user.email}&token=${forgotPasswordToken}#change-password">link to</a> finish changing your password`;
-        await sendEmail(user, message, `${user.email}, ${user.recordsEmail}`, "Change your password for transactions accountant");
+        const message: string = `Please follow this <a href="https://storage.googleapis.com/ta2-transactions-ui/build/index.html?email=${user.email}&token=${forgotPasswordToken}#change-password">link</a> to finish changing your password.  Your login is ${user.email}`;
+        await sendEmail(user, message, [user.email, user.recordsEmail], "Change your password for transactions accountant");
         return true;
     } catch (e) {
         console.error(e);
