@@ -41,6 +41,7 @@ app.delete("/transaction/:id", validateJwtAndInjectUser, transactionController.r
 
 // User routes
 app.post("/user/login", userController.validateLogin(), checkValidationResult, userController.login);
+app.get("/user/validate-token", validateJwtAndInjectUser, (req, res) => res.status(200).json({message: "ok"}));
 app.post("/user/create", userController.validateCreate(), checkValidationResult, userController.create);
 app.get("/user/balance", validateJwtAndInjectUser, userController.getBalance);
 app.post("/user/forgot-password", userController.forgotPassword);
