@@ -48,7 +48,7 @@ app.post("/user/forgot-password", userController.forgotPassword);
 app.post("/user/change-password", userController.changePassword);
 
 // Process routes
-app.post("/process", processController.process);
+app.get("/process", processController.process);
 
 function checkValidationResult(req: Request, res: Response, next: NextFunction) {
     const result = validationResult(req);
