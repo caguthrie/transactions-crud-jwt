@@ -1,4 +1,5 @@
 cron:
 - description: "Email batcher"
   url: /process
+  timezone: America/New_York
   schedule: every day 00:00
