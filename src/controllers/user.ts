@@ -8,6 +8,7 @@ import { datastore } from "../services/datastore";
 import { DatastoreKey } from "@google-cloud/datastore/entity";
 import { UserModel } from "../models/User";
 import { getByEmail } from "../services/userService";
+import { attemptImapLogin } from "../services/emailService";
 
 export let validateLogin = () => {
     return [
@@ -39,7 +40,9 @@ export let validateCreate = () => {
     return [
         ...validateLogin(),
         body("name", "Please provide email").exists(),
-        body("balance", "Please provide password").exists(),
+        body("emailPassword", "Please provide emailPassword").exists(),
+        body("recordsEmail", "Please provide recordsEmail").exists(),
+        body("balance", "Please provide password").isNumeric(),
         body("userCreationPassword", "Please provide userCreationPassword").exists()
     ];
 };
@@ -51,21 +54,30 @@ export const create = async (req: Request, res: Response) => {
         if (user) {
             res.status(409).json({message: `A user with the email address ${email} already exists!`});
         } else {
-            if (bcrypt.compareSync(userCreationPassword, process.env.LOGIN_SECRET)) {
-                await userService.create({
-                    name,
-                    email,
-                    passwordDigest: bcrypt.hashSync(password), // One way encryption for password
-                    balance,
-                    // TODO need to add these properties to the front-end
-                    recordsEmail,
-                    forgotPasswordToken: undefined,
-                    emailPassword: cryptoService.encrypt(emailPassword) // Two way AES encryption for data at rest
-                });
-                res.sendStatus(200);
-            } else {
-                res.status(403).json({message: "Incorrect user creation password"});
-            }
+            // Attempt a login to see if that is a valid gmail email/password combination
+            const imap = attemptImapLogin(email, emailPassword);
+            imap.connect();
+            imap.once("error", (err: any) => {
+                res.status(415).json({message: `Unable to log in to gmail address ${email} with provided emailPassword!`});
+                return;
+            });
+
+            imap.once("ready", async () => {
+                if (bcrypt.compareSync(userCreationPassword, process.env.LOGIN_SECRET)) {
+                    await userService.create({
+                        name,
+                        email,
+                        passwordDigest: bcrypt.hashSync(password), // One way encryption for password
+                        balance,
+                        recordsEmail,
+                        forgotPasswordToken: undefined,
+                        emailPassword: cryptoService.encrypt(emailPassword) // Two way AES encryption for data at rest
+                    });
+                    await login(req, res);
+                } else {
+                    res.status(403).json({message: "Incorrect user creation password"});
+                }
+            });
         }
     } catch (err) {
         res.status(500).json({message: "Unable to query database for user"});

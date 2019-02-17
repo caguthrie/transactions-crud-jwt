@@ -5,15 +5,19 @@ import { Transaction } from "../models/Transaction";
 import sendGmail from "gmail-send";
 import { formatAndSortTransactions, formatMoney } from "../util/format";
 
-export function fetchUnreadMessages(user: UserModel): Promise<Transaction[]> {
-    const imap = new Imap({
-        user: user.email,
-        password: decrypt(user.emailPassword),
+export function attemptImapLogin(email: string, password: string) {
+    return new Imap({
+        user: email,
+        password,
         host: "imap.gmail.com",
         port: 993,
         tls: true,
         authTimeout: 20000
     });
+}
+
+export function fetchUnreadMessages(user: UserModel): Promise<Transaction[]> {
+    const imap = attemptImapLogin(user.email, decrypt(user.emailPassword));
 
     return new Promise((resolve, reject) => {
         const transactions: Transaction[] = [];

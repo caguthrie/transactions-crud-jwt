@@ -3,3 +3,6 @@ cron:
   url: /process
   timezone: America/New_York
   schedule: every day 00:00
+  retry_parameters:
+    min_backoff_seconds: 5
+    max_doublings: 5
