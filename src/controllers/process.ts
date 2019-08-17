@@ -13,39 +13,35 @@ export const process = async (req: Request, res: Response) => {
     }
     try {
         const users = await getAll();
-        // TODO instead of dealing with promises inside an async function, might be cleaner to do a regular for loop ...
-        const results = users.map((user) => {
-            return new Promise(async (resolve, reject) => {
-                try {
-                    const transactionsFromEmails = await fetchUnreadMessages(user);
-                    const userKey = user[datastore.KEY as any];
-                    const [transactionsFromDB] = (await transactionService.getAll(parseInt(userKey.id))) as Transaction[][];
-                    const transactionsToProcess = [...transactionsFromEmails, ...transactionsFromDB];
-                    if (transactionsToProcess.length > 0) {
-                        await sendBill(user, transactionsToProcess);
-                        // Remove all transactions in db
-                        transactionsFromDB.forEach(t => transactionService.remove(parseInt(t[datastore.KEY as any].id)));
-                        update({...user, balance: user.balance + transactionsToProcess.reduce((memo, t) => t.price + memo, 0)});
-                        console.log(`Processed ${transactionsToProcess.length} transactions for ${user.name}`);
-                        resolve();
-                    } else {
-                        console.log(`No messages to process for ${user.name}`);
-                        resolve();
+        for (const user of users) {
+            console.log(`Starting processing bill for ${user.name}`);
+            try {
+                const transactionsFromEmails = await fetchUnreadMessages(user);
+                const userKey = user[datastore.KEY as any];
+                const [transactionsFromDB] = (await transactionService.getAll(parseInt(userKey.id))) as Transaction[][];
+                const transactionsToProcess = [...transactionsFromEmails, ...transactionsFromDB];
+                if (transactionsToProcess.length > 0) {
+                    console.log(`Trying to send bill for ${user.name}`);
+                    await sendBill(user, transactionsToProcess);
+                    // Remove all transactions in db
+                    for (const t of transactionsFromDB) {
+                        console.log(`Deleting: ${t.description} for ${user.name}`);
+                        await transactionService.remove(parseInt(t[datastore.KEY as any].id));
                     }
-                } catch (error) {
-                    console.error(`Error occurred while processing ${user.name}.`, error);
-                    reject();
+                    const newTransactionsSum = transactionsToProcess.reduce((memo, t) => t.price + memo, 0);
+                    console.log(`Changing user ${user.name}'s balance from ${user.balance} to ${user.balance + newTransactionsSum}`);
+                    await update({...user, balance: user.balance + newTransactionsSum});
+                    console.log(`Processed ${transactionsToProcess.length} transactions for ${user.name}`);
+                } else {
+                    console.log(`No messages to process for ${user.name}`);
                 }
-            });
-        });
-        Promise.all(results)
-            .then(results => {
-                console.log("Done!");
-                res.status(200).json({message: "Success!"});
-            })
-            .catch(error => {
+            } catch (error) {
+                console.error(`Error occurred while processing ${user.name}.`, error);
                 res.status(500).json({error});
-            });
+            }
+        }
+        console.log("Done with all users!");
+        res.status(200).json({message: "Success!"});
     } catch (error) {
         console.error("Failed to get users", error);
         res.status(500).json({error});

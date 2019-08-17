@@ -24,12 +24,14 @@ export function fetchUnreadMessages(user: UserModel): Promise<Transaction[]> {
         imap.once("ready", () => {
             imap.openBox("INBOX", false, () => {
                 imap.search(["UNSEEN"], (err, results) => {
+                    console.log(`Found ${results.length} unread messages`);
                     // If there are no messages, just return an email array
                     if (results.length === 0) {
                         resolve([]);
                     } else {
                         const f = imap.fetch(results, { bodies: ""});
                         f.on("message", (msg) => {
+                            console.log("found message");
                             msg.on("body", (stream) => {
                                 const chunks: string[] = [];
                                 stream.on("data", (chunk: string) => {
@@ -49,12 +51,15 @@ export function fetchUnreadMessages(user: UserModel): Promise<Transaction[]> {
                             reject("Fetch error: " + err);
                         });
                         f.once("end", () => {
+                            console.log("Marking unread emails to read");
                             imap.setFlags(results, ["\\Seen"], (err) => {
                                 if (err) {
                                     reject("Unable to mark messages as read");
                                 }
                             });
                             imap.end();
+                            transactions.forEach(t => console.log(`Found: ${t.description}`));
+                            resolve(transactions);
                         });
                     }
                 });
@@ -65,34 +70,41 @@ export function fetchUnreadMessages(user: UserModel): Promise<Transaction[]> {
             reject(err);
         });
 
-        imap.once("end", () => {
-            resolve(transactions);
-        });
-
         imap.connect();
     });
 }
 
 function parseTransactionFromCloakifyEmail(message: string): Transaction {
-    const orderId = message.match(/\nOrder ID: (.*)\r/)[1];
-    const event = message.match(/\nEvent: (.*)\r/)[1];
-    const venue = message.match(/\nVenue: (.*)\r/)[1];
-    const date = message.match(/\nEvent Date: (.*)\r/)[1];
-    const time = message.match(/\nEvent Time: (.*)\r/)[1];
-    const quantity = message.match(/\nQuantity: (.*)\r/)[1];
-    const cost = message.match(/\nCost: \$(.*)\r/)[1];
-    return {
-        price: parseFloat(cost),
-        description: `${orderId} ${quantity}x ${event} @ ${venue} on ${date} ${time}`,
-        userId: undefined
-    };
+    try {
+        const orderId = message.match(/\nOrder ID: (.*)\r/)[1];
+        const event = message.match(/\nEvent: (.*)\r/)[1];
+        const venue = message.match(/\nVenue: (.*)\r/)[1];
+        const date = message.match(/\nEvent Date: (.*)\r/) ? message.match(/\nEvent Date: (.*)\r/)[1] : "Unknown";
+        const time = message.match(/\nEvent Time: (.*)\r/)[1];
+        const quantity = message.match(/\nQuantity: (.*)\r/)[1];
+        const cost = message.match(/\nCost: \$(.*)\r/)[1];
+        const description = `${orderId} ${quantity}x ${event} @ ${venue} on ${date} ${time}`;
+        console.log(`Parsed email: ${description}`);
+        return {
+            price: parseFloat(cost),
+            description,
+            userId: undefined
+        };
+    } catch (e) {
+        console.error("Unable to parse message!");
+        console.error(message);
+        console.error(e);
+        return undefined;
+    }
 }
 
 function parseTransactionFromPaypalEmail(message: string): Transaction  {
     const result = Buffer.from(message.split("\r\n\r\n")[1], "base64").toString();
     const dollarAmountAsString = result.match(/sent you \$(.*)/)[1].split(" USD")[0].replace(",", "");
+    const price =  -parseFloat(dollarAmountAsString);
+    console.log(`Parsed paypal ${price}`);
     return {
-        price: -parseFloat(dollarAmountAsString),
+        price,
         description: "PayPal",
         userId: undefined
     };

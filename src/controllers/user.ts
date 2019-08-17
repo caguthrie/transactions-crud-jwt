@@ -56,6 +56,11 @@ export const create = async (req: Request, res: Response) => {
         } else {
             // Attempt a login to see if that is a valid gmail email/password combination
             const imap = attemptImapLogin(email, emailPassword);
+            /**
+             * If this fails, do these two things:
+             * 1) Enable less secure apps in the google account
+             * 2) Enable IMAP in gmail
+             */
             imap.connect();
             imap.once("error", (err: any) => {
                 res.status(415).json({message: `Unable to log in to gmail address ${email} with provided emailPassword!`});

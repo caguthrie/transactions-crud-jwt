@@ -46,11 +46,10 @@ export async function update(transaction: Transaction) {
 export async function remove(id: number) {
     const transactionKey = datastore.key([TransactionScope, id]);
     try {
-        await datastore.delete(transactionKey);
-        console.log(`Deleted ${id}`);
+        return await datastore.delete(transactionKey);
     } catch (err) {
         // TODO better error handling
-        console.error("ERROR:", err);
+        console.error(`ERROR unable to delete transaction with id ${id}:`, err);
     }
 }
 
