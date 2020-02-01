@@ -110,6 +110,17 @@ function parseTransactionFromPaypalEmail(message: string): Transaction  {
     };
 }
 
+function parseTransactionFromZelleEmail(message: string): Transaction  {
+    const dollarAmountAsString = message.match(/<b>Amount:<\/b> \$(.*)/)[1].split(" (USD")[0].replace(",", "");
+    const price =  -parseFloat(dollarAmountAsString);
+    console.log(`Parsed zelle ${price}`);
+    return {
+        price,
+        description: "Zelle",
+        userId: undefined
+    };
+}
+
 export function parseMessage(message: string): Transaction {
     const [_, fromAndBody] = message.split("\nFrom: ");
     const [__, from] = fromAndBody.match(/<(.*)>/);
@@ -118,6 +129,8 @@ export function parseMessage(message: string): Transaction {
             return parseTransactionFromCloakifyEmail(fromAndBody);
         case "service@paypal.com":
             return parseTransactionFromPaypalEmail(fromAndBody);
+        case "no-reply@alertsp.chase.com":
+            return parseTransactionFromZelleEmail(fromAndBody);
         default:
             return undefined;
     }
