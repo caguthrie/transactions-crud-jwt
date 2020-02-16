@@ -4,6 +4,7 @@ import Imap from "imap";
 import { Transaction } from "../models/Transaction";
 import sendGmail from "gmail-send";
 import { formatAndSortTransactions, formatMoney } from "../util/format";
+import mimelib from "mimelib";
 
 export function attemptImapLogin(email: string, password: string) {
     return new Imap({
@@ -111,7 +112,7 @@ function parseTransactionFromPaypalEmail(message: string): Transaction  {
 }
 
 function parseTransactionFromZelleEmail(message: string): Transaction  {
-    const dollarAmountAsString = message.match(/<b>Amount:<\/b> \$(.*)/)[1].split(" (USD")[0].replace(",", "");
+    const dollarAmountAsString = mimelib.decodeQuotedPrintable(message).match(/<b>Amount:<\/b> \$(.*)/)[1].split(" (USD")[0].replace(",", "");
     const price =  -parseFloat(dollarAmountAsString);
     console.log(`Parsed zelle ${price}`);
     return {
