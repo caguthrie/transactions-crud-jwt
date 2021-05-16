@@ -17,9 +17,9 @@ export let validateTransactionForCreation = () => {
  * Create a new transaction
  */
 export const create = (req: Request, res: Response) => {
-    const {description, price} = req.body as Transaction;
+    const {description, price, processed = false} = req.body as Transaction;
     const {id}: DatastoreKey = req.user[datastore.KEY as any];
-    transactionService.create({description, price, userId: parseInt(id)});
+    transactionService.create({description, price, userId: parseInt(id), processed});
     return res.status(200).json({result: "ok"});
 };
 
@@ -36,8 +36,8 @@ export let validateTransactionForUpdate = () => {
  * Update a transaction
  */
 export const update = (req: Request, res: Response) => {
-    const {description, price, userId, id} = req.body as Transaction;
-    transactionService.update({description, price, userId, id});
+    const {description, price, userId, id, processed = false} = req.body as Transaction;
+    transactionService.update({description, price, userId, id, processed});
     // TODO error handling
     return res.status(200).json({result: "ok"});
 };
@@ -59,7 +59,7 @@ export const remove = (req: Request, res: Response) => {
  */
 export let getAll = async (req: Request, res: Response) => {
     const {id}: DatastoreKey = req.user[datastore.KEY as any];
-    const result = await transactionService.getAll(parseInt(id));
+    const result = await transactionService.getAllUnprocessed(parseInt(id));
     const resp = result[0].map((entity: any) => {
         return {
             ...entity,

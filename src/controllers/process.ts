@@ -18,7 +18,8 @@ export const process = async (req: Request, res: Response) => {
             try {
                 const transactionsFromEmails = await fetchUnreadMessages(user);
                 const userKey = user[datastore.KEY as any];
-                const [transactionsFromDB] = (await transactionService.getAll(parseInt(userKey.id))) as Transaction[][];
+                const userIdAsInteger = parseInt(userKey.id);
+                const [transactionsFromDB] = (await transactionService.getAllUnprocessed(userIdAsInteger)) as Transaction[][];
                 const transactionsToProcess = [...transactionsFromEmails, ...transactionsFromDB];
                 if (transactionsToProcess.length > 0) {
                     console.log(`Trying to send bill for ${user.name}`);
@@ -26,7 +27,11 @@ export const process = async (req: Request, res: Response) => {
                     // Remove all transactions in db
                     for (const t of transactionsFromDB) {
                         console.log(`Deleting: ${t.description} for ${user.name}`);
-                        await transactionService.remove(parseInt(t[datastore.KEY as any].id));
+                        await transactionService.update({...t, id: t[datastore.KEY as any].id, processed: true});
+                    }
+                    for (const t of transactionsFromEmails) {
+                        console.log(`Created completed transaction in DB: ${t.description} for ${user.name}`);
+                        await transactionService.create({...t, userId: userIdAsInteger, processed: true});
                     }
                     const newTransactionsSum = transactionsToProcess.reduce((memo, t) => t.price + memo, 0);
                     console.log(`Changing user ${user.name}'s balance from ${user.balance} to ${user.balance + newTransactionsSum}`);

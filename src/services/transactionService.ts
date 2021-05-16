@@ -22,7 +22,7 @@ export async function create(transaction: Transaction) {
 }
 
 export async function update(transaction: Transaction) {
-    const {id, userId, price, description} = transaction;
+    const {id, userId, price, description, processed} = transaction;
     // TODO fix this type stuff
     const transactionKey = datastore.key([TransactionScope, parseInt(id.toString())]);
     const transactionRow = {
@@ -30,13 +30,14 @@ export async function update(transaction: Transaction) {
         data: {
             description,
             price,
-            userId
+            userId,
+            processed
         }
     };
 
     try {
         await datastore.update(transactionRow);
-        console.log(`Updated ${transaction.description} to price ${price} for userId ${userId}`);
+        console.log(`Updated ${description} to price ${price} and processed ${processed} for userId ${userId}`);
     } catch (err) {
         // TODO better error handling
         console.error("ERROR:", err);
@@ -53,9 +54,11 @@ export async function remove(id: number) {
     }
 }
 
-export async function getAll(userId: number): Promise<QueryResult> {
+export async function getAllUnprocessed(userId: number): Promise<QueryResult> {
     const query = datastore.createQuery(TransactionScope);
-    query.filter("userId", "=", userId);
+    query
+        .filter("userId", "=", userId)
+        .filter("processed", "=", false);
     return datastore.runQuery(query);
 }
 

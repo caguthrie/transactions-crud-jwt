@@ -89,7 +89,8 @@ function parseTransactionFromCloakifyEmail(message: string): Transaction {
         return {
             price: parseFloat(cost),
             description,
-            userId: undefined
+            userId: undefined,
+            processed: false
         };
     } catch (e) {
         console.error("Unable to parse message!");
@@ -107,7 +108,8 @@ function parseTransactionFromPaypalEmail(message: string): Transaction  {
     return {
         price,
         description: "PayPal",
-        userId: undefined
+        userId: undefined,
+        processed: false
     };
 }
 
@@ -118,7 +120,8 @@ function parseTransactionFromZelleEmail(message: string): Transaction  {
     return {
         price,
         description: "Zelle",
-        userId: undefined
+        userId: undefined,
+        processed: false
     };
 }
 
