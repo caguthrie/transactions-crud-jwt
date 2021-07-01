@@ -34,6 +34,7 @@ app.use(
 
 // Transaction routes
 app.get("/transaction/all", validateJwtAndInjectUser, transactionController.getAll);
+app.get("/transaction/all/processed", validateJwtAndInjectUser, transactionController.getAllProcessed);
 app.get("/transaction/:id", validateJwtAndInjectUser, transactionController.get);
 app.post("/transaction/create", transactionController.validateTransactionForCreation(), checkValidationResult, validateJwtAndInjectUser, transactionController.create);
 app.put("/transaction/update", transactionController.validateTransactionForUpdate(), checkValidationResult, validateJwtAndInjectUser, transactionController.update);

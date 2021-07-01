@@ -70,6 +70,25 @@ export let getAll = async (req: Request, res: Response) => {
 };
 
 /**
+ * GET /transaction/all/processed
+ * Get all processed transactions
+ */
+export let getAllProcessed = async (req: Request, res: Response) => {
+    const {id}: DatastoreKey = req.user[datastore.KEY as any];
+    const result = await transactionService.getAllProcessed(parseInt(id), req.query.cursor);
+    const items = result[0].map((entity: any) => {
+        return {
+            ...entity,
+            id: entity[datastore.KEY].id
+        };
+    });
+    res.send({
+        items,
+        cursor: result[1].moreResults === "MORE_RESULTS_AFTER_CURSOR" ? result[1].endCursor : null
+    });
+};
+
+/**
  * GET /transaction/:id
  * Get a transaction
  */

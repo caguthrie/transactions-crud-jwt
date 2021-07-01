@@ -39,3 +39,5 @@ dist/**/*
 
 key.json
 .env.yaml
+
+README_J.md

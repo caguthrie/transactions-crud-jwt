@@ -7,9 +7,10 @@ const TransactionScope = "Transaction";
 
 export async function create(transaction: Transaction) {
     const transactionKey = datastore.key([TransactionScope]);
+    const now = new Date();
     const transactionRow = {
         key: transactionKey,
-        data: transaction
+        data: {...transaction, lastUpdatedAt: now}
     };
 
     try {
@@ -31,7 +32,8 @@ export async function update(transaction: Transaction) {
             description,
             price,
             userId,
-            processed
+            processed,
+            lastUpdatedAt: new Date()
         }
     };
 
@@ -59,6 +61,19 @@ export async function getAllUnprocessed(userId: number): Promise<QueryResult> {
     query
         .filter("userId", "=", userId)
         .filter("processed", "=", false);
+    return datastore.runQuery(query);
+}
+
+export async function getAllProcessed(userId: number, cursor?: string): Promise<QueryResult> {
+    const query = datastore.createQuery(TransactionScope);
+    query
+        .filter("userId", "=", userId)
+        .filter("processed", "=", true);
+
+    if (cursor) {
+        query.start(cursor);
+    }
+
     return datastore.runQuery(query);
 }
 
