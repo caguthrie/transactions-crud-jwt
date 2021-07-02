@@ -5,6 +5,7 @@ import { Transaction } from "../models/Transaction";
 import sendGmail from "gmail-send";
 import { formatAndSortTransactions, formatMoney } from "../util/format";
 import mimelib from "mimelib";
+import * as cheerio from "cheerio";
 
 export function attemptImapLogin(email: string, password: string) {
     return new Imap({
@@ -100,6 +101,32 @@ function parseTransactionFromCloakifyEmail(message: string): Transaction {
     }
 }
 
+function parseTransactionFromSeatScoutEmail(message: string): Transaction {
+    try {
+        const html = message.split("<!DOCTYPE html>")[1].replace(/(\r)|(\n)/g, "");
+        const $ = cheerio.load(html);
+        const orderId = $("body > table > tr > td.container > div > table > tr:nth-child(3) > td.content-wrap > table > tr:nth-child(2) > td > table > tr:nth-child(6) > td").text().split(" / ")[0];
+        const event = $("body > table > tr > td.container > div > table > tr:nth-child(3) > td.content-wrap > table > tr:nth-child(2) > td > table > tr:nth-child(3) > td > table:nth-child(1) > tr:nth-child(1) > td").text();
+        const venue = $("body > table > tr > td.container > div > table > tr:nth-child(3) > td.content-wrap > table > tr:nth-child(2) > td > table > tr:nth-child(3) > td > table:nth-child(1) > tr:nth-child(3) > td").text();
+        const [date, time] = $("body > table > tr > td.container > div > table > tr:nth-child(3) > td.content-wrap > table > tr:nth-child(2) > td > table > tr:nth-child(3) > td > table:nth-child(1) > tr:nth-child(2) > td").text().split("T");
+        const quantity = $("body > table > tr > td.container > div > table > tr:nth-child(3) > td.content-wrap > table > tr:nth-child(2) > td > table > tr:nth-child(3) > td > table:nth-child(1) > tr:nth-child(5) > td").text();
+        const cost = $("body > table > tr > td.container > div > table > tr:nth-child(3) > td.content-wrap > table > tr:nth-child(2) > td > table > tr:nth-child(5) > td").text().match(/\$(.*)/)[1];
+        const description = `${orderId} ${quantity}+ ${event} @ ${venue} on ${date} ${time}`;
+        console.log(`Parsed email: ${description}`);
+        return {
+            price: parseFloat(cost),
+            description,
+            userId: undefined,
+            processed: false
+        };
+    } catch (e) {
+        console.error("Unable to parse message!");
+        console.error(message);
+        console.error(e);
+        return undefined;
+    }
+}
+
 function parseTransactionFromPaypalEmail(message: string): Transaction  {
     const result = Buffer.from(message.split("\r\n\r\n")[1], "base64").toString();
     const dollarAmountAsString = result.match(/sent you \$(.*)/)[1].split(" USD")[0].replace(",", "");
@@ -129,6 +156,8 @@ export function parseMessage(message: string): Transaction {
     const [_, fromAndBody] = message.split("\nFrom: ");
     const [__, from] = fromAndBody.match(/<(.*)>/);
     switch (from) {
+        case "no-reply@seatscouts.com":
+            return parseTransactionFromSeatScoutEmail(fromAndBody);
         case "notify@cloakify.com":
             return parseTransactionFromCloakifyEmail(fromAndBody);
         case "service@paypal.com":
