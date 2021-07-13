@@ -114,7 +114,7 @@ function parseTransactionFromSeatScoutEmail(message: string): Transaction {
         const description = `${orderId} ${quantity}+ ${event} @ ${venue} on ${date} ${time}`;
         console.log(`Parsed email: ${description}`);
         return {
-            price: parseFloat(cost),
+            price: parseFloat(cost.replace(",", "")),
             description,
             userId: undefined,
             processed: false
